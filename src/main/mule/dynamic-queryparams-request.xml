@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="665fd6ba-e881-47e3-93bf-7a4f461ff9ea" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<flow name="dynamic-queryparams-requestFlow" doc:id="447b56c7-9a6c-48b7-9fad-15ac443bc46a" >
+		<http:listener doc:name="/Get" doc:id="9149e2f7-5d71-4f42-bf3f-75e7fb1cb2e2" config-ref="HTTP_Listener_config" path="/get-data"/>
+		<set-variable value="#[attributes.queryParams.name]" doc:name="Name" doc:id="f602a5b1-c15d-44b6-9699-0af08ac3d43a" variableName="name"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="5c1e7679-d291-405a-854a-227f8542454f" >
+			<route >
+				<http:request method="GET" doc:name="Genderize" doc:id="1f2aacda-b411-460b-9d6d-ebeb11b70d00" url='#["https://api.genderize.io/?name=" ++ vars.name]'/>
+			</route>
+			<route >
+				<http:request method="GET" doc:name="Nationalize" doc:id="c9a4e3cc-b41a-4520-9c28-b986f52da937" url='#["https://api.nationalize.io?name=" ++ vars.name]'/>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="774a368d-5827-4af5-b4c9-f0dc7e58845f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"gender":payload."0".payload,
+	"nationality":payload."1".payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
